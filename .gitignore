@@ -118,3 +118,6 @@ htmlcov/
 $RECYCLE.BIN/
 ehthumbs.db
 Desktop.ini
+
+.pdf
+.zshrc
