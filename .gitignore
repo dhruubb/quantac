@@ -1,0 +1,120 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+.env.production
+secrets.toml
+
+# API Keys
+*.key
+*.pem
+*.p8
+
+# User data (NEVER commit these)
+users.json
+chat_histories/
+*.db
+*.sqlite
+*.sqlite3
+
+# Vectorstore (can be rebuilt)
+vectorstore/
+*.faiss
+*.pkl
+*.pickle
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv
+ENV/
+venv/
+env/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Streamlit
+.streamlit/
+.streamlit/cache/
+
+# Logs
+*.log
+*.logs
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Large data files
+*.csv
+*.xlsx
+*.xls
+*.parquet
+
+# IDE specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/*
+
+# Mac
+.AppleDouble
+.LSOverride
+
+# Windows
+$RECYCLE.BIN/
+ehthumbs.db
+Desktop.ini
