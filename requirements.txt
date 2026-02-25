@@ -16,7 +16,7 @@ groq==1.0.0
 
 # LLM & NLP
 transformers==4.35.2
-torch==2.3.0
+torch==2.10.0
 huggingface-hub==0.19.4
 
 # Utilities
