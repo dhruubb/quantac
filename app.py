@@ -9,17 +9,6 @@ from rag_answer import load_vectorstore, retrieve_and_answer
 
 # Load environment variables from .env file
 load_dotenv()
-GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-REDIRECT_URI         = os.getenv("REDIRECT_URI", "http://localhost:8501")
-GOOGLE_ENABLED       = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-
-AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_ENDPOINT         = "https://oauth2.googleapis.com/token"
-USERINFO_ENDPOINT      = "https://www.googleapis.com/oauth2/v1/userinfo"
-
-if GOOGLE_ENABLED:
-    from authlib.integrations.requests_client import OAuth2Session
 
 st.set_page_config(page_title="QuantAc", page_icon="", layout="wide", initial_sidebar_state="expanded")
 
@@ -58,21 +47,6 @@ def register_user(username, password):
     save_users(users)
     return True, "Account created successfully."
 
-def set_google_username(google_email, new_username):
-    """Allow Google users to set a custom username for login"""
-    users = load_users()
-    if new_username in users and users[new_username] != "__google__":
-        return False, "Username already taken."
-    if len(new_username) < 3:
-        return False, "Username must be at least 3 characters."
-    
-    # Update the mapping
-    users[new_username] = "__google__"
-    # Keep the email mapping too
-    users[google_email] = "__google__"
-    save_users(users)
-    return True, "Username set successfully!"
-
 def history_path(username):
     safe = username.replace("@", "_at_").replace(".", "_")
     return os.path.join(HISTORY_DIR, f"{safe}.json")
@@ -93,58 +67,6 @@ def clear_user_history(username):
     if os.path.exists(path):
         os.remove(path)
 
-def get_google_auth_url():
-    oauth = OAuth2Session(
-        GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-        scope="openid email profile", redirect_uri=REDIRECT_URI,
-    )
-    auth_url, state = oauth.create_authorization_url(
-        AUTHORIZATION_ENDPOINT, access_type="offline", prompt="select_account",
-    )
-    st.session_state["oauth_state"] = state
-    return auth_url
-
-def handle_google_callback():
-    if not GOOGLE_ENABLED:
-        return False
-    params = st.query_params
-    if "code" not in params:
-        return False
-    try:
-        oauth = OAuth2Session(
-            GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-            scope="openid email profile", redirect_uri=REDIRECT_URI,
-            state=st.session_state.get("oauth_state"),
-        )
-        oauth.fetch_token(TOKEN_ENDPOINT, code=params["code"])
-        userinfo = oauth.get(USERINFO_ENDPOINT).json()
-        email = userinfo.get("email", "")
-        name  = userinfo.get("name", email.split("@")[0])
-        users = load_users()
-        
-        is_new_user = email not in users
-        
-        if is_new_user:
-            users[email] = "__google__"
-            save_users(users)
-            # Set flag to show username setup modal on first login
-            st.session_state.show_username_setup = True
-        
-        st.session_state.logged_in    = True
-        st.session_state.username     = email
-        st.session_state.display_name = name
-        st.session_state.google_email = email
-        st.session_state.chat_history = load_user_history(email)
-        st.session_state.query_count  = sum(
-            1 for m in st.session_state.chat_history if m["role"] == "user"
-        )
-        st.query_params.clear()
-        return True
-    except Exception as e:
-        st.error(f"Google login failed: {e}")
-        st.query_params.clear()
-        return False
-
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -153,43 +75,11 @@ html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; backgroun
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stSidebar"] { background: #05080f !important; border-right: 1px solid #12243a; }
 [data-testid="stSidebar"] * { color: #7a9dbf !important; }
-.login-container { max-width: 380px; margin: 0 auto; padding: 40px 30px; }
 .login-logo { font-family: 'IBM Plex Mono', monospace; font-size: 2.2rem; color: #e0eeff; margin-bottom: 8px; font-weight: 600; letter-spacing: 1px; }
 .login-sub { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: #3a6a8a; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 32px; }
-.google-btn-compact {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    background: #fff; color: #1a1a2e; border: 1px solid #ddd; border-radius: 4px;
-    padding: 8px 16px; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem;
-    font-weight: 500; text-decoration: none; width: 100%; box-sizing: border-box;
-    transition: all 0.2s;
-}
-.google-btn-compact:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); transform: translateY(-1px); color: #1a1a2e; }
-.google-btn-compact svg { width: 16px; height: 16px; }
 .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: #1e3a55; }
 .divider::before, .divider::after { content: ''; flex: 1; border-top: 1px solid #0f2035; }
-.auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-.auth-tabs button { flex: 1; padding: 8px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; border: 1px solid #1a3050; background: transparent; color: #4a7a9a; border-radius: 3px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
-.auth-tabs button.active { border-color: #e8e8e8; color: #e8e8e8; background: #e8e8e810; }
-.auth-tabs button:hover { border-color: #e8e8e8; color: #e8e8e8; }
-.auth-form { display: flex; flex-direction: column; gap: 12px; }
-.auth-form-row { display: flex; flex-direction: column; gap: 4px; }
-.auth-form-row label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: #3a6a8a; letter-spacing: 1px; text-transform: uppercase; }
-.auth-form-row input { background: #09121e !important; border: 1px solid #1a3050 !important; border-radius: 3px !important; color: #c8d6e5 !important; padding: 8px 12px !important; font-family: 'IBM Plex Sans', sans-serif !important; font-size: 0.85rem !important; }
-.auth-form-row input:focus { border-color: #e8e8e8 !important; box-shadow: 0 0 0 2px #e8e8e815 !important; outline: none !important; }
-.auth-submit { background: transparent !important; border: 1px solid #e8e8e8 !important; color: #e8e8e8 !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 0.7rem !important; letter-spacing: 1.5px !important; text-transform: uppercase !important; border-radius: 3px !important; padding: 10px 16px !important; font-weight: 500 !important; cursor: pointer; transition: all 0.2s !important; margin-top: 6px !important; }
-.auth-submit:hover { background: #e8e8e812 !important; box-shadow: 0 0 8px #e8e8e820 !important; }
 .auth-footer { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: #1e3a55; margin-top: 16px; text-align: center; line-height: 1.6; }
-.auth-error { background: #ff6b6b15; border: 1px solid #ff6b6b40; border-radius: 3px; padding: 8px 12px; color: #ff6b6b; font-size: 0.75rem; margin-bottom: 10px; }
-.auth-success { background: #51cf6615; border: 1px solid #51cf6640; border-radius: 3px; padding: 8px 12px; color: #51cf66; font-size: 0.75rem; margin-bottom: 10px; }
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-box { background: linear-gradient(135deg, #0b1e33 0%, #081420 100%); border: 1px solid #1a3555; border-radius: 6px; padding: 32px; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-.modal-title { font-family: 'IBM Plex Mono', monospace; font-size: 1.2rem; color: #e0eeff; margin-bottom: 8px; font-weight: 600; }
-.modal-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #3a6a8a; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px; }
-.modal-input { background: #09121e !important; border: 1px solid #1a3050 !important; border-radius: 3px !important; color: #c8d6e5 !important; padding: 10px 14px !important; font-family: 'IBM Plex Sans', sans-serif !important; font-size: 0.88rem !important; width: 100% !important; margin-bottom: 16px !important; }
-.modal-input:focus { border-color: #e8e8e8 !important; box-shadow: 0 0 0 2px #e8e8e815 !important; outline: none !important; }
-.modal-button { background: transparent !important; border: 1px solid #e8e8e8 !important; color: #e8e8e8 !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 0.7rem !important; letter-spacing: 1.5px !important; text-transform: uppercase !important; border-radius: 3px !important; padding: 10px 16px !important; font-weight: 500 !important; cursor: pointer; transition: all 0.2s !important; width: 100% !important; }
-.modal-button:hover { background: #e8e8e812 !important; box-shadow: 0 0 8px #e8e8e820 !important; }
-.modal-skip { background: transparent !important; border: 1px solid #1a3550 !important; color: #4a7a9a !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 0.65rem !important; padding: 8px 12px !important; margin-top: 8px !important; }
 .fin-header {
     background: linear-gradient(90deg, #0b1a30 0%, #091422 100%);
     border: 1px solid #1a3550; border-left: 4px solid #e8e8e8; border-radius: 4px;
@@ -256,17 +146,11 @@ st.markdown(CSS, unsafe_allow_html=True)
 defaults = {
     "logged_in": False, "username": None, "display_name": None,
     "chat_history": [], "vectorstore": None, "vs_loaded": False,
-    "query_count": 0, "auth_mode": "login", "show_username_setup": False,
-    "google_email": None,
+    "query_count": 0, "auth_mode": "login",
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
-
-# Handle Google callback BEFORE anything else renders
-if not st.session_state.logged_in:
-    if handle_google_callback():
-        st.rerun()
 
 @st.cache_resource(show_spinner=False)
 def get_vectorstore():
@@ -299,46 +183,6 @@ def process_query(query, company_filter, year_filter):
 
 
 # ══════════════════════════════════════════════════════════════════
-# USERNAME SETUP MODAL (for Google users)
-# ══════════════════════════════════════════════════════════════════
-def show_username_setup_modal():
-    """Modal for Google users to set a custom username"""
-    st.markdown("""
-    <div style='position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;'>
-        <div style='background: linear-gradient(135deg, #0b1e33 0%, #081420 100%); border: 1px solid #1a3555; border-radius: 6px; padding: 32px; max-width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);'>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='font-family: IBM Plex Mono, monospace; font-size: 1.2rem; color: #e0eeff; margin-bottom: 8px; font-weight: 600;'>Set Your Username</div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-family: IBM Plex Mono, monospace; font-size: 0.68rem; color: #3a6a8a; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;'>Use this to log in without Google</div>", unsafe_allow_html=True)
-    
-    new_username = st.text_input("Choose a username", placeholder="e.g., john_doe", key="google_username_setup")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("SET USERNAME", key="set_username_btn", use_container_width=True):
-            if not new_username:
-                st.error("Please enter a username")
-            else:
-                ok, msg = set_google_username(st.session_state.google_email, new_username)
-                if ok:
-                    st.success("✅ Username set! You can now log in with this username.")
-                    st.session_state.show_username_setup = False
-                    st.rerun()
-                else:
-                    st.error(f"❌ {msg}")
-    
-    with col2:
-        if st.button("SKIP FOR NOW", key="skip_username_btn", use_container_width=True):
-            st.session_state.show_username_setup = False
-            st.rerun()
-    
-    st.markdown("<div style='font-family: IBM Plex Mono, monospace; font-size: 0.65rem; color: #1a3050; margin-top: 16px; text-align: center; line-height: 1.6;'>You can always set this later in settings</div>", unsafe_allow_html=True)
-    
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════════════════════════
 # LOGIN PAGE
 # ══════════════════════════════════════════════════════════════════
 def show_login_page():
@@ -354,23 +198,7 @@ def show_login_page():
         st.markdown("<div class='login-logo'>QuantAc</div>", unsafe_allow_html=True)
         st.markdown("<div class='login-sub'>MD&A Intelligence Terminal</div>", unsafe_allow_html=True)
 
-        # Google OAuth button (only shown if configured) - COMPACT VERSION
-        if GOOGLE_ENABLED:
-            auth_url = get_google_auth_url()
-            st.markdown(f"""
-            <a href="{auth_url}" class="google-btn-compact" target="_self">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Google
-            </a>
-            """, unsafe_allow_html=True)
-            st.markdown("<div class='divider'>OR</div>", unsafe_allow_html=True)
-
-        # Username / password tabs with better styling
+        # Username / password tabs
         mode = st.session_state.auth_mode
         col1, col2 = st.columns(2)
         with col1:
@@ -429,11 +257,6 @@ def show_login_page():
 # MAIN APP
 # ══════════════════════════════════════════════════════════════════
 def show_main_app():
-    # Show username setup modal if needed
-    if st.session_state.show_username_setup:
-        show_username_setup_modal()
-        return
-    
     if not st.session_state.vs_loaded:
         try:
             st.session_state.vectorstore = get_vectorstore()
