@@ -1,39 +1,31 @@
-# Environment variables & secrets
+# ── Secrets & credentials ─────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 .env.production
 secrets.toml
-
-# API Keys
 *.key
 *.pem
 *.p8
 
-# User data (NEVER commit these)
+# ── User data (NEVER commit) ──────────────────────────────────────
 users.json
 chat_histories/
 *.db
 *.sqlite
 *.sqlite3
 
-# Vectorstore (can be rebuilt)
-vectorstore/
-*.faiss
-*.pkl
-*.pickle
+# ── Vectorstore (NOW COMMITTED for Streamlit Cloud deployment) ────
+# vectorstore/     ← removed so FAISS index is pushed to GitHub
+# *.faiss          ← removed
+# *.pkl            ← removed
 
-# Python
+# ── Python ────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 build/
 develop-eggs/
 dist/
@@ -53,44 +45,46 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# ── Virtual environments ──────────────────────────────────────────
 .venv
 ENV/
 venv/
 env/
+env.bak/
+venv.bak/
 
-# IDE & Editors
+# ── IDE & Editors ─────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
 .project
 .pydevproject
 .settings/
 *.sublime-project
 *.sublime-workspace
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+Thumbs.db
+Desktop.ini
+.AppleDouble
+.LSOverride
+$RECYCLE.BIN/
 
-# Streamlit
-.streamlit/
+# ── Streamlit cache ───────────────────────────────────────────────
 .streamlit/cache/
 
-# Logs
+# ── Logs & temp ───────────────────────────────────────────────────
 *.log
 *.logs
 logs/
-
-# Temporary files
 *.tmp
 *.temp
 .cache/
@@ -98,26 +92,14 @@ logs/
 .coverage
 htmlcov/
 
-# Large data files
-*.csv
-*.xlsx
-*.xls
+# ── Source data files (PDFs and Excel ARE committed for deployment)
+# .pdf             ← removed so MD&A PDFs are pushed to GitHub
+# .xlsx            ← removed so financial Excel files are pushed
 *.parquet
+*.csv
 
-# IDE specific
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-.idea/*
-
-# Mac
-.AppleDouble
-.LSOverride
-
-# Windows
-$RECYCLE.BIN/
-ehthumbs.db
-Desktop.ini
-
-.pdf
+# ── Shell config (personal, never commit) ────────────────────────
 .zshrc
+.zprofile
+.bashrc
+.bash_profile
