@@ -10,7 +10,6 @@ langchain-core==0.1.53
 # Embeddings & Vector Store
 sentence-transformers==2.2.2
 faiss-cpu==1.13.2
-source venv/bin/activate
 # LLM API
 groq==0.4.2
 
